@@ -252,60 +252,67 @@ spec:
         emptyDir: {}
 ---
 ##################################################################################################
-# Productpage services
+# echoserver services
 ##################################################################################################
 apiVersion: v1
 kind: Service
 metadata:
-  name: productpage
+  name: echoserver
   labels:
-    app: productpage
-    service: productpage
+    app: echoserver
+    service: echoserver
 spec:
   ports:
-  - port: 9080
-    name: http
+  - port: 9000
+    name: sidecar
   selector:
-    app: productpage
+    app: echoserver
+  type: NodePort
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookinfo-productpage
   labels:
-    account: productpage
+    account: echoserver
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: productpage-v1
+  name: echoserver
   labels:
-    app: productpage
+    app: echoserver
     version: v1
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: productpage
+      app: echoserver
       version: v1
   template:
     metadata:
       labels:
-        app: productpage
+        app: echoserver
         version: v1
     spec:
       serviceAccountName: bookinfo-productpage
       containers:
-      - name: productpage
-        image: docker.io/istio/examples-bookinfo-productpage-v1:1.17.0
+      - name: echoserver
+        image: docker.io/anjalikutal/echo-server:latest
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 9080
+        - containerPort: 8080
         volumeMounts:
         - name: tmp
           mountPath: /tmp
         securityContext:
           runAsUser: 1000
+      - name: rate-limit
+        image: docker.io/anjalikutal/rate-limiter:latest
+        args: ["--bind","9000","--target","http://localhost:8080"]
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9000
       volumes:
       - name: tmp
         emptyDir: {}
